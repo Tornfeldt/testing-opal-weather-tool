@@ -1,6 +1,5 @@
 import { ParameterType, ToolsService, tool } from '@optimizely-opal/opal-tools-sdk';
 import express from 'express';
-import { URLSearchParams } from 'node:url';
 
 interface WeatherParameters {
   city: string;
@@ -19,6 +18,12 @@ const app = express();
 
 // This is required for the tool to properly read and understand the incoming JSON POST requests from Opal.
 app.use(express.json());
+
+// Basic health endpoint for hosting providers
+app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 
 // Error handling middleware
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -72,47 +77,18 @@ class WeatherTools {
   async getWeather(parameters: WeatherParameters): Promise<WeatherResponse> {
     try {
       const { city, state, country, units = '' } = parameters;
-      const apiUrl = 'https://api.openweathermap.org/data/2.5/weather';
-
       // Validate required parameters
       if ((!city || city.trim() === '') ||
           (!country || country.trim() === '')) {
         throw new Error('City and Country are required and cannot be empty');
       }
 
-      // Start with mock data in case an API key is not configured.
-      let weatherData: WeatherResponse = {
+      // Return mock data only.
+      const weatherData: WeatherResponse = {
         temperature: units === 'fahrenheit' ? 72 : 22,
         condition: 'sunny',
         location: `${city}, ${state}, ${country}`,
       };
-
-      // Check for API key and use this to retrieve live weather.
-      if (process.env.OPENWEATHERMAP_API_KEY && process.env.OPENWEATHERMAP_API_KEY.trim() !== '') {
-        // Build query parameters for OpenWeatherMap API GET request.
-        let q = new URLSearchParams();
-        if (state) {
-          q.append("q", `${city},${state},${country}`);
-        } else {
-          q.append("q", `${city},${country}`);
-        }
-        q.append('units', units);
-        q.append("appid", process.env.OPENWEATHERMAP_API_KEY);
-
-        // Request live weather data.
-        const response = await fetch(`${apiUrl}?${q}`);
-        if (!response.ok) {
-          throw new Error(`Response Error: ${response.status}`);
-        }
-
-        // Build response for Opal based on data from the API.
-        const result = await response.json();
-        weatherData = {
-          temperature: result.main.temp,
-          condition: result.weather[0].main + (result.weather[0].description ? ` (${result.weather[0].description})` : ''),
-          location: `${result.name}, ${result.sys.country}`
-        };
-      }
 
       // Return response to Opal
       return weatherData;
