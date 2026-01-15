@@ -14,6 +14,14 @@ interface WeatherResponse {
   location: string;
 }
 
+interface CountryParameters {
+  city: string;
+}
+
+interface CountryResponse {
+  country: string;
+}
+
 const app = express();
 
 // This is required for the tool to properly read and understand the incoming JSON POST requests from Opal.
@@ -96,6 +104,27 @@ class WeatherTools {
       console.error('Error fetching weather:', error);
       throw new Error(`Failed to get weather for ${parameters.city}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  @tool({
+    name: 'get_country',
+    description: 'Returns the country for a given city name.',
+    parameters: [
+      {
+        name: "city",
+        description: "The name of the city.",
+        type: ParameterType.String,
+        required: true
+      }
+    ]
+  })
+  async getCountry(parameters: CountryParameters): Promise<CountryResponse> {
+    const { city } = parameters;
+    if (!city || city.trim() === '') {
+      throw new Error('City is required and cannot be empty');
+    }
+
+    return { country: 'Denmark' };
   }
 }
 
